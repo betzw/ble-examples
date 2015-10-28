@@ -18,6 +18,13 @@
 #include "ble/BLE.h"
 #include "ble/services/EddystoneService.h"
 
+#define DBG_MCU
+#ifdef DBG_MCU
+/* betzw: enable debugging while using sleep modes */
+#include "x-nucleo-common/DbgMCU.h"
+static DbgMCU enable_dbg;
+#endif // DBG_MCU
+
 DigitalOut led1(LED1, 1);
 
 static uint8_t UIDnamespace[] = {0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xAA}; // 10Bytes for Namespace UUID
