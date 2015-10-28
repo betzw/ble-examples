@@ -14,20 +14,43 @@
  * limitations under the License.
  */
 
-#include "mbed.h"
+#include <string.h>
+
+#include "mbed-drivers/mbed.h"
 #include "ble/BLE.h"
+
+#define URI_BUFFER_SIZE 0x1000  // in characters
+#define URI_BUFFER_TH   128     // in characters
+static char uri_buffer[URI_BUFFER_SIZE];
+static unsigned int uri_buffer_pos = 0;
 
 static const int URI_MAX_LENGTH = 18;             // Maximum size of service data in ADV packets
 
 DigitalOut led1(LED1, 1);
 
-void periodicCallback(void)
+static inline void printURIs(void)
 {
-    led1 = !led1; /* Do blinky on LED1 while we're waiting for BLE events */
+	printf("%s\n\r", uri_buffer);
+	uri_buffer_pos = 0;
 }
 
-void decodeURI(const uint8_t* uriData, const size_t uriLen)
+static void periodicCallback(void)
 {
+    static unsigned int cnt = 0;
+
+    led1 = !led1; /* Do blinky on LED1 while we're waiting for BLE events */
+
+    if((++cnt >= 10) && (uri_buffer_pos > 0)) { // 5 secs
+	    printURIs();
+	    cnt = 0;
+    }
+}
+
+static void decodeURI(const uint8_t* uriData, const size_t uriLen, const int8_t rssi)
+{
+    char tmp_buffer[URI_MAX_LENGTH];
+    unsigned int tmp_buffer_pos = 0;
+
     const char *prefixes[] = {
         "http://www.",
         "https://www.",
@@ -56,32 +79,48 @@ void decodeURI(const uint8_t* uriData, const size_t uriLen)
 
     size_t index = 0;
 
+    /* betzw: first check for buffer space */
+    if((uri_buffer_pos + URI_BUFFER_TH) >= URI_BUFFER_SIZE) { // betzw: flush buffer
+	    printURIs();
+    }
+
     /* First byte is the URL Scheme. */
     if (uriData[index] < NUM_PREFIXES) {
-        printf("%s", prefixes[uriData[index]]);
+	sprintf(&tmp_buffer[tmp_buffer_pos], "%s", prefixes[uriData[index]]);
+	tmp_buffer_pos = strlen(tmp_buffer);
         index++;
     } else {
-        printf("URL Scheme was not encoded!");
+        printf("URL Scheme was not encoded!\n\r");
         return;
     }
 
     /* From second byte onwards we can have a character or a suffix */
     while(index < uriLen) {
         if (uriData[index] < NUM_SUFFIXES) {
-            printf("%s", suffixes[uriData[index]]);
+	    sprintf(&tmp_buffer[tmp_buffer_pos], "%s", suffixes[uriData[index]]);
+	    tmp_buffer_pos = strlen(tmp_buffer);
         } else {
-            printf("%c", uriData[index]);
+            sprintf(&tmp_buffer[tmp_buffer_pos], "%c", uriData[index]);
+	    tmp_buffer_pos = strlen(tmp_buffer);
         }
         index++;
     }
 
-    printf("\n\r");
+    if((uri_buffer_pos > 0) && (strstr(uri_buffer, tmp_buffer) != NULL)) 
+	    return; // In case the URI is already in the list just return
+
+    sprintf(&tmp_buffer[tmp_buffer_pos], " : %d\n\r", rssi);
+    tmp_buffer_pos = strlen(tmp_buffer);
+
+    /* Copy tmp buffer to uri buffer */
+    sprintf(&uri_buffer[uri_buffer_pos], "%s", tmp_buffer);
+    uri_buffer_pos = strlen(uri_buffer);
 }
 
 /*
  * This function is called every time we scan an advertisement.
  */
-void advertisementCallback(const Gap::AdvertisementCallbackParams_t *params)
+static void advertisementCallback(const Gap::AdvertisementCallbackParams_t *params)
 {
     struct AdvertisingData_t {
         uint8_t                        length; /* doesn't include itself */
@@ -107,7 +146,7 @@ void advertisementCallback(const Gap::AdvertisementCallbackParams_t *params)
         if (pAdvData->dataType == GapAdvertisingData::SERVICE_DATA) {
             ApplicationData_t *pAppData = (ApplicationData_t *) pAdvData->data;
             if (!memcmp(pAppData->applicationSpecificId, BEACON_UUID, sizeof(BEACON_UUID)) && (pAppData->frameType == FRAME_TYPE_URL)) {
-                decodeURI(pAppData->uriData, pAdvData->length - APPLICATION_DATA_OFFSET);
+		    decodeURI(pAppData->uriData, pAdvData->length - APPLICATION_DATA_OFFSET, params->rssi);
                 break;
             }
         }
