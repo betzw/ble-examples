@@ -19,6 +19,13 @@
 #include "mbed-drivers/mbed.h"
 #include "ble/BLE.h"
 
+#define DBG_MCU
+#ifdef DBG_MCU
+/* betzw: enable debugging while using sleep modes */
+#include "x-nucleo-common/DbgMCU.h"
+static DbgMCU enable_dbg;
+#endif // DBG_MCU
+
 #define URI_BUFFER_SIZE 0x1000  // in characters
 #define URI_BUFFER_TH   128     // in characters
 static char uri_buffer[URI_BUFFER_SIZE];
