@@ -29,10 +29,10 @@ static DbgMCU enable_dbg;
 #define URI_BUFFER_SIZE (0x1000)  // in characters
 #define URI_BUFFER_TH   (0x80)    // in characters
 #define NR_URI_BUFFERS  (0x4)     // Number of URI buffers
-static char uri_buffer[NR_URI_BUFFERS][URI_BUFFER_SIZE];
+static char uri_buffer[NR_URI_BUFFERS][URI_BUFFER_SIZE] = { { '\0' } };
 static unsigned int uri_buffer_pos[NR_URI_BUFFERS] = { 0 };
-static unsigned int nr_filling_buf = 0;  // number of buffer to be filled
-static unsigned int nr_printing_buf = 0; // number of buffer to be printed
+static unsigned int nr_filling_buf = 0;     // number of buffer to be filled
+static unsigned int nr_printing_buf = 0;    // number of buffer to be printed
 
 static const int URI_MAX_LENGTH = 18;             // Maximum size of service data in ADV packets
 
@@ -69,9 +69,12 @@ static void periodicPrintCallback(void) {
     curr_buf_pos += ret;
 
   if(curr_buf_pos >= curr_buf_len) { // we have printed the whole buffer
-    // printf("\n\r"); // betzw - NOTE: should be commented!?!
+    printf("\n\r"); // betzw - NOTE: should be commented!?!
     curr_buf_pos = 0;
-    inc_buf_nr(nr_printing_buf);
+    uri_buffer[inc_buf_nr(nr_printing_buf)][0] = '\0';
+  }
+  
+  if((nr_printing_buf == nr_filling_buf) || (uri_buffer[nr_printing_buf][0] == '\0')) {
     delayedPrintHandle = minar::Scheduler::postCallback(periodicPrintURIs).delay(minar::milliseconds(PRINT_URIS_DELAY)).getHandle();
   } else { // we need to continue printing
     minar::Scheduler::postCallback(periodicPrintCallback);
@@ -81,11 +84,16 @@ static void periodicPrintCallback(void) {
 static void periodicPrintURIs(void)
 {
   delayedPrintHandle = NULL;
-  uri_buffer_pos[inc_buf_nr(nr_filling_buf)] = 0;
-  if(nr_filling_buf == nr_printing_buf) {
-    error("==> FATAL ERROR: nr_filling_buf(%u) == nr_printing_buf(%u)!!! <==\n\r", nr_filling_buf, nr_printing_buf);
+
+  if(uri_buffer[nr_printing_buf][0] == '\0') {
+    delayedPrintHandle = minar::Scheduler::postCallback(periodicPrintURIs).delay(minar::milliseconds(PRINT_URIS_DELAY)).getHandle();
+  } else {
+    uri_buffer_pos[inc_buf_nr(nr_filling_buf)] = 0;
+    if(nr_filling_buf == nr_printing_buf) {
+      error("==> FATAL ERROR: nr_filling_buf(%u) == nr_printing_buf(%u)!!! <==\n\r", nr_filling_buf, nr_printing_buf);
+    }
+    minar::Scheduler::postCallback(periodicPrintCallback);
   }
-  minar::Scheduler::postCallback(periodicPrintCallback);
 }
 
 static void periodicBlinkyCallback(void)
