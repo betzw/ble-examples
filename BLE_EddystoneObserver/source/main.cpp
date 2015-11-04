@@ -19,7 +19,7 @@
 #include "mbed-drivers/mbed.h"
 #include "ble/BLE.h"
 
-#define DBG_MCU
+//#define DBG_MCU
 #ifdef DBG_MCU
 /* betzw: enable debugging while using sleep modes */
 #include "x-nucleo-common/DbgMCU.h"
@@ -213,13 +213,37 @@ static void advertisementCallback(const Gap::AdvertisementCallbackParams_t *para
   }
 }
 
+void onBleInitError(BLE &ble, ble_error_t error)
+{
+  /* To avoid compiler warnings */
+  (void)ble;
+  (void)error;
+
+  /* Initialization error handling should go here */
+}
+
+void bleInitComplete(BLE::InitializationCompleteCallbackContext *params)
+{
+  BLE& ble = params->ble;
+  ble_error_t error = params->error;
+
+  if (error != BLE_ERROR_NONE) {
+    onBleInitError(ble, error);
+    return;
+  }
+
+  if (ble.getInstanceID() != BLE::DEFAULT_INSTANCE) {
+    return;
+  }
+
+  ble.gap().setScanParams(1800 /* scan interval */, 1500 /* scan window */);
+  ble.gap().startScan(advertisementCallback);
+}
+
 void app_start(int, char *[])
 {
   minar::Scheduler::postCallback(periodicBlinkyCallback).period(minar::milliseconds(500));
   delayedPrintHandle = minar::Scheduler::postCallback(periodicPrintURIs).delay(minar::milliseconds(PRINT_URIS_DELAY)).getHandle();
 
-  BLE &ble = BLE::Instance();
-  ble.init();
-  ble.gap().setScanParams(1800 /* scan interval */, 1500 /* scan window */);
-  ble.gap().startScan(advertisementCallback);
+  BLE::Instance().init(bleInitComplete);
 }
