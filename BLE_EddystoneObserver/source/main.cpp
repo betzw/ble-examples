@@ -69,7 +69,7 @@ static void periodicPrintCallback(void) {
     curr_buf_pos += ret;
 
   if(curr_buf_pos >= curr_buf_len) { // we have printed the whole buffer
-    printf("\n\r"); // betzw - NOTE: should be commented!?!
+    // printf("\n\r"); // betzw - NOTE: should be commented!?!
     curr_buf_pos = 0;
     uri_buffer[inc_buf_nr(nr_printing_buf)][0] = '\0';
   }
@@ -165,11 +165,11 @@ static void decodeURI(const uint8_t* uriData, const size_t uriLen, const int8_t 
     index++;
   }
 
-  sprintf(&tmp_buffer[tmp_buffer_pos], " : %d\n\r", rssi);
-  tmp_buffer_pos = strlen(tmp_buffer);
-
   if((uri_buffer_pos[nr_filling_buf] > 0) && (strstr(uri_buffer[nr_filling_buf], tmp_buffer) != NULL)) 
     return; // In case the URI is already in the list just return
+
+  sprintf(&tmp_buffer[tmp_buffer_pos], " : %d\n\r", rssi);
+  tmp_buffer_pos = strlen(tmp_buffer);
 
   /* Copy tmp buffer to uri buffer */
   sprintf(&uri_buffer[nr_filling_buf][uri_buffer_pos[nr_filling_buf]], "%s", tmp_buffer);
