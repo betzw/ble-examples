@@ -22,7 +22,7 @@
 //#define DBG_MCU
 #ifdef DBG_MCU
 /* betzw: enable debugging while using sleep modes */
-#include "x-nucleo-common/DbgMCU.h"
+#include "../yotta_modules/x-nucleo-common/x-nucleo-common/DbgMCU.h"
 static DbgMCU enable_dbg;
 #endif // DBG_MCU
 
@@ -165,11 +165,11 @@ static void decodeURI(const uint8_t* uriData, const size_t uriLen, const int8_t 
     index++;
   }
 
-  sprintf(&tmp_buffer[tmp_buffer_pos], "\t%d\n\r", rssi);
-  tmp_buffer_pos = strlen(tmp_buffer);
-
   if((uri_buffer_pos[nr_filling_buf] > 0) && (strstr(uri_buffer[nr_filling_buf], tmp_buffer) != NULL)) 
     return; // In case the URI is already in the list just return
+
+  sprintf(&tmp_buffer[tmp_buffer_pos], "\t%d\n\r", rssi);
+  tmp_buffer_pos = strlen(tmp_buffer);
 
   /* Copy tmp buffer to uri buffer */
   sprintf(&uri_buffer[nr_filling_buf][uri_buffer_pos[nr_filling_buf]], "%s", tmp_buffer);
