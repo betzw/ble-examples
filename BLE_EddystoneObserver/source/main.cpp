@@ -165,7 +165,7 @@ static void decodeURI(const uint8_t* uriData, const size_t uriLen, const int8_t 
     index++;
   }
 
-  sprintf(&tmp_buffer[tmp_buffer_pos], " : %d\n\r", rssi);
+  sprintf(&tmp_buffer[tmp_buffer_pos], "\t%d\n\r", rssi);
   tmp_buffer_pos = strlen(tmp_buffer);
 
   if((uri_buffer_pos[nr_filling_buf] > 0) && (strstr(uri_buffer[nr_filling_buf], tmp_buffer) != NULL)) 
