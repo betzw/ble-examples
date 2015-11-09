@@ -98,7 +98,7 @@ static void periodicPrintURIs(void)
 
 static void periodicBlinkyCallback(void)
 {
-  led1 = !led1; /* Do blinky on LED1 while we're waiting for BLE events */
+    led1 = !led1; /* Do blinky on LED1 while we're waiting for BLE events */
 }
 
 static void decodeURI(const uint8_t* uriData, const size_t uriLen, const int8_t rssi)
@@ -106,33 +106,33 @@ static void decodeURI(const uint8_t* uriData, const size_t uriLen, const int8_t 
   char tmp_buffer[URI_MAX_LENGTH];
   unsigned int tmp_buffer_pos = 0;
 
-  const char *prefixes[] = {
-    "http://www.",
-    "https://www.",
-    "http://",
-    "https://",
-    "urn:uuid:"
-  };
-  const size_t NUM_PREFIXES = sizeof(prefixes) / sizeof(char *);
-  const char *suffixes[] = {
-    ".com/",
-    ".org/",
-    ".edu/",
-    ".net/",
-    ".info/",
-    ".biz/",
-    ".gov/",
-    ".com",
-    ".org",
-    ".edu",
-    ".net",
-    ".info",
-    ".biz",
-    ".gov"
-  };
-  const size_t NUM_SUFFIXES = sizeof(suffixes) / sizeof(char *);
+    const char *prefixes[] = {
+        "http://www.",
+        "https://www.",
+        "http://",
+        "https://",
+        "urn:uuid:"
+    };
+    const size_t NUM_PREFIXES = sizeof(prefixes) / sizeof(char *);
+    const char *suffixes[] = {
+        ".com/",
+        ".org/",
+        ".edu/",
+        ".net/",
+        ".info/",
+        ".biz/",
+        ".gov/",
+        ".com",
+        ".org",
+        ".edu",
+        ".net",
+        ".info",
+        ".biz",
+        ".gov"
+    };
+    const size_t NUM_SUFFIXES = sizeof(suffixes) / sizeof(char *);
 
-  size_t index = 0;
+    size_t index = 0;
 
   /* betzw: first check for buffer space */
   if((uri_buffer_pos[nr_filling_buf] + URI_BUFFER_TH) >= URI_BUFFER_SIZE) { // betzw: flush buffer
@@ -143,27 +143,27 @@ static void decodeURI(const uint8_t* uriData, const size_t uriLen, const int8_t 
     periodicPrintURIs();
   }
 
-  /* First byte is the URL Scheme. */
-  if (uriData[index] < NUM_PREFIXES) {
+    /* First byte is the URL Scheme. */
+    if (uriData[index] < NUM_PREFIXES) {
     sprintf(&tmp_buffer[tmp_buffer_pos], "%s", prefixes[uriData[index]]);
     tmp_buffer_pos = strlen(tmp_buffer);
-    index++;
-  } else {
+        index++;
+    } else {
     printf("URL Scheme was not encoded!\n\r");
-    return;
-  }
+        return;
+    }
 
-  /* From second byte onwards we can have a character or a suffix */
-  while(index < uriLen) {
-    if (uriData[index] < NUM_SUFFIXES) {
+    /* From second byte onwards we can have a character or a suffix */
+    while(index < uriLen) {
+        if (uriData[index] < NUM_SUFFIXES) {
       sprintf(&tmp_buffer[tmp_buffer_pos], "%s", suffixes[uriData[index]]);
       tmp_buffer_pos = strlen(tmp_buffer);
-    } else {
+        } else {
       sprintf(&tmp_buffer[tmp_buffer_pos], "%c", uriData[index]);
       tmp_buffer_pos = strlen(tmp_buffer);
+        }
+        index++;
     }
-    index++;
-  }
 
   if((uri_buffer_pos[nr_filling_buf] > 0) && (strstr(uri_buffer[nr_filling_buf], tmp_buffer) != NULL)) 
     return; // In case the URI is already in the list just return
@@ -181,36 +181,36 @@ static void decodeURI(const uint8_t* uriData, const size_t uriLen, const int8_t 
  */
 static void advertisementCallback(const Gap::AdvertisementCallbackParams_t *params)
 {
-  struct AdvertisingData_t {
-    uint8_t                        length; /* doesn't include itself */
-    GapAdvertisingData::DataType_t dataType;
-    uint8_t                        data[0];
-  } AdvDataPacket;
+    struct AdvertisingData_t {
+        uint8_t                        length; /* doesn't include itself */
+        GapAdvertisingData::DataType_t dataType;
+        uint8_t                        data[0];
+    } AdvDataPacket;
 
-  struct ApplicationData_t {
-    uint8_t applicationSpecificId[2];
-    uint8_t frameType;
-    uint8_t advPowerLevels;
-    uint8_t uriData[URI_MAX_LENGTH];
-  } AppDataPacket;
+    struct ApplicationData_t {
+        uint8_t applicationSpecificId[2];
+        uint8_t frameType;
+        uint8_t advPowerLevels;
+        uint8_t uriData[URI_MAX_LENGTH];
+    } AppDataPacket;
 
-  const uint8_t BEACON_UUID[sizeof(UUID::ShortUUIDBytes_t)] = {0xAA, 0xFE};
-  const uint8_t FRAME_TYPE_URL                              = 0x10;
-  const uint8_t APPLICATION_DATA_OFFSET                     = sizeof(ApplicationData_t) + sizeof(AdvDataPacket.dataType) - sizeof(AppDataPacket.uriData);
+    const uint8_t BEACON_UUID[sizeof(UUID::ShortUUIDBytes_t)] = {0xAA, 0xFE};
+    const uint8_t FRAME_TYPE_URL                              = 0x10;
+    const uint8_t APPLICATION_DATA_OFFSET                     = sizeof(ApplicationData_t) + sizeof(AdvDataPacket.dataType) - sizeof(AppDataPacket.uriData);
 
-  AdvertisingData_t *pAdvData;
-  size_t index = 0;
-  while(index < params->advertisingDataLen) {
-    pAdvData = (AdvertisingData_t *)&params->advertisingData[index];
-    if (pAdvData->dataType == GapAdvertisingData::SERVICE_DATA) {
-      ApplicationData_t *pAppData = (ApplicationData_t *) pAdvData->data;
-      if (!memcmp(pAppData->applicationSpecificId, BEACON_UUID, sizeof(BEACON_UUID)) && (pAppData->frameType == FRAME_TYPE_URL)) {
+    AdvertisingData_t *pAdvData;
+    size_t index = 0;
+    while(index < params->advertisingDataLen) {
+        pAdvData = (AdvertisingData_t *)&params->advertisingData[index];
+        if (pAdvData->dataType == GapAdvertisingData::SERVICE_DATA) {
+            ApplicationData_t *pAppData = (ApplicationData_t *) pAdvData->data;
+            if (!memcmp(pAppData->applicationSpecificId, BEACON_UUID, sizeof(BEACON_UUID)) && (pAppData->frameType == FRAME_TYPE_URL)) {
 	decodeURI(pAppData->uriData, pAdvData->length - APPLICATION_DATA_OFFSET, params->rssi);
-	break;
-      }
+                break;
+            }
+        }
+        index += (pAdvData->length + 1);
     }
-    index += (pAdvData->length + 1);
-  }
 }
 
 void onBleInitError(BLE &ble, ble_error_t error)
@@ -236,8 +236,8 @@ void bleInitComplete(BLE::InitializationCompleteCallbackContext *params)
     return;
   }
 
-  ble.gap().setScanParams(1800 /* scan interval */, 1500 /* scan window */);
-  ble.gap().startScan(advertisementCallback);
+    ble.gap().setScanParams(1800 /* scan interval */, 1500 /* scan window */);
+    ble.gap().startScan(advertisementCallback);
 }
 
 void app_start(int, char *[])
