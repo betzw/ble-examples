@@ -21,7 +21,7 @@
 #define DBG_MCU
 #ifdef DBG_MCU
 /* betzw: enable debugging while using sleep modes */
-#include "x-nucleo-common/DbgMCU.h"
+#include "../yotta_modules/x-nucleo-common/x-nucleo-common/DbgMCU.h"
 static DbgMCU enable_dbg;
 #endif // DBG_MCU
 
@@ -97,4 +97,12 @@ void bleInitComplete(BLE::InitializationCompleteCallbackContext *params)
     /* Start Advertising the eddystone service. */
     eddyBeaconPtr->start();
     ble.gap().startAdvertising();
+}
+
+void app_start(int, char**)
+{
+    minar::Scheduler::postCallback(blinkCallback).period(minar::milliseconds(500));
+
+    BLE &ble = BLE::Instance();
+    ble.init(bleInitComplete);
 }
