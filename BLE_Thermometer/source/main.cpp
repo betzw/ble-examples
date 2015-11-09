@@ -1,5 +1,5 @@
 /* mbed Microcontroller Library
- * Copyright (c) 2006-2015 ARM Limited
+ * Copyright (c) 2006-2013 ARM Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,40 +16,34 @@
 
 #include "mbed.h"
 #include "ble/BLE.h"
-#include "ble/Gap.h"
-#include "ble/services/HeartRateService.h"
+#include "ble/services/HealthThermometerService.h"
 
 DigitalOut led1(LED1, 1);
 
-const static char     DEVICE_NAME[] = "HRM";
-static const uint16_t uuid16_list[] = {GattService::UUID_HEART_RATE_SERVICE};
+const static char     DEVICE_NAME[]        = "Therm";
+static const uint16_t uuid16_list[]        = {GattService::UUID_HEALTH_THERMOMETER_SERVICE};
 
-static uint8_t hrmCounter = 100; // init HRM to 100bps
-static HeartRateService *hrServicePtr;
+static float                     currentTemperature   = 39.6;
+static HealthThermometerService *thermometerServicePtr;
 
-void disconnectionCallback(const Gap::DisconnectionCallbackParams_t *params)
+/* Restart Advertising on disconnection*/
+void disconnectionCallback(const Gap::DisconnectionCallbackParams_t *)
 {
-    BLE::Instance().gap().startAdvertising(); // restart advertising
+    BLE::Instance().gap().startAdvertising();
 }
 
-void updateSensorValue() {
-    // Do blocking calls or whatever is necessary for sensor polling.
-    // In our case, we simply update the HRM measurement.
-    hrmCounter++;
-
-    //  100 <= HRM bps <=175
-    if (hrmCounter == 175) {
-        hrmCounter = 100;
-    }
-
-    hrServicePtr->updateHeartRate(hrmCounter);
+void updateSensorValue(void) {
+    /* Do blocking calls or whatever is necessary for sensor polling.
+       In our case, we simply update the Temperature measurement. */
+    currentTemperature += 0.1;
+    thermometerServicePtr->updateTemperature(currentTemperature);
 }
 
 void periodicCallback(void)
 {
     led1 = !led1; /* Do blinky on LED1 while we're waiting for BLE events */
 
-    if (BLE::Instance().getGapState().connected) {
+    if (BLE::Instance().gap().getState().connected) {
         minar::Scheduler::postCallback(updateSensorValue);
     }
 }
@@ -76,19 +70,19 @@ void bleInitComplete(BLE::InitializationCompleteCallbackContext *params)
     ble.gap().onDisconnection(disconnectionCallback);
 
     /* Setup primary service. */
-    hrServicePtr = new HeartRateService(ble, hrmCounter, HeartRateService::LOCATION_FINGER);
+    thermometerServicePtr = new HealthThermometerService(ble, currentTemperature, HealthThermometerService::LOCATION_EAR);
 
-    /* Setup advertising. */
+    /* setup advertising */
     ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::BREDR_NOT_SUPPORTED | GapAdvertisingData::LE_GENERAL_DISCOVERABLE);
     ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::COMPLETE_LIST_16BIT_SERVICE_IDS, (uint8_t *)uuid16_list, sizeof(uuid16_list));
-    ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::GENERIC_HEART_RATE_SENSOR);
+    ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::THERMOMETER_EAR);
     ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::COMPLETE_LOCAL_NAME, (uint8_t *)DEVICE_NAME, sizeof(DEVICE_NAME));
     ble.gap().setAdvertisingType(GapAdvertisingParams::ADV_CONNECTABLE_UNDIRECTED);
     ble.gap().setAdvertisingInterval(1000); /* 1000ms */
     ble.gap().startAdvertising();
 }
 
-void app_start(int, char **)
+void app_start(int, char**)
 {
     minar::Scheduler::postCallback(periodicCallback).period(minar::milliseconds(500));
 

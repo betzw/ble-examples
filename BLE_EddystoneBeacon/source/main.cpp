@@ -21,7 +21,7 @@
 #define DBG_MCU
 #ifdef DBG_MCU
 /* betzw: enable debugging while using sleep modes */
-#include "x-nucleo-common/DbgMCU.h"
+#include "../yotta_modules/x-nucleo-common/x-nucleo-common/DbgMCU.h"
 static DbgMCU enable_dbg;
 #endif // DBG_MCU
 
@@ -55,12 +55,32 @@ void tlmTemperatureCallback(void){
     eddyBeaconPtr->updateTlmBeaconTemp(temp++);
 }
 
-void app_start(int, char**)
+/**
+ * This function is called when the ble initialization process has failled
+ */
+void onBleInitError(BLE &ble, ble_error_t error)
 {
-    minar::Scheduler::postCallback(blinkCallback).period(minar::milliseconds(500));
+    // Initialization error handling should go here
+}
 
-    BLE &ble = BLE::Instance();
-    ble.init();
+/**
+ * Callback triggered when the ble initialization process has finished
+ */
+void bleInitComplete(BLE::InitializationCompleteCallbackContext *params)
+{
+    BLE&        ble   = params->ble;
+    ble_error_t error = params->error;
+
+    if (error != BLE_ERROR_NONE) {
+        // in case of error, forward the error handling to onBleInitError
+        onBleInitError(ble, error);
+        return;
+    }
+
+    // ensure that it is the default instance of BLE
+    if(ble.getInstanceID() != BLE::DEFAULT_INSTANCE) {
+        return;
+    }
 
     /* Setup Eddystone Service */
     eddyBeaconPtr = new EddystoneService(ble, beaconPeriodus, radioTxPower);
@@ -77,4 +97,12 @@ void app_start(int, char**)
     /* Start Advertising the eddystone service. */
     eddyBeaconPtr->start();
     ble.gap().startAdvertising();
+}
+
+void app_start(int, char**)
+{
+    minar::Scheduler::postCallback(blinkCallback).period(minar::milliseconds(500));
+
+    BLE &ble = BLE::Instance();
+    ble.init(bleInitComplete);
 }
